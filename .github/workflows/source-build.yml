@@ -1,0 +1,81 @@
+name: Source build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Python ${{ matrix.python }} and Node 22
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12.11", "3.13.5"]
+    env:
+      PYTHON_VERSION: ${{ matrix.python }}
+      UV_NO_CONFIG: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "0.7.20"
+          enable-cache: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: "22.23.2"
+          package-manager-cache: false
+      - name: Build local distributions
+        run: uv run --no-project --python "$PYTHON_VERSION" python scripts/build.py
+      - name: Install Python wheel and source archive
+        shell: bash
+        run: |
+          for artifact in "$GITHUB_WORKSPACE"/dist/*.whl "$GITHUB_WORKSPACE"/dist/*.tar.gz; do
+            environment="$RUNNER_TEMP/$(basename "$artifact").venv"
+            uv venv "$environment" --python "$PYTHON_VERSION"
+            uv pip install --python "$environment/bin/python" "$artifact"
+            (
+              cd "$RUNNER_TEMP"
+              "$environment/bin/python" -I -c '
+          import importlib.metadata
+          import sys
+          from pathlib import Path
+          import kimpton_evalrouter as sdk
+          assert sdk.Client is sdk.EvalRouter
+          assert sdk.__version__ == importlib.metadata.version("kimpton-evalrouter-sdk")
+          assert Path(sdk.__file__).resolve().is_relative_to(Path(sys.prefix).resolve())
+          print("Installed SDK import passed")
+          '
+              "$environment/bin/evalrouter" --help
+            )
+          done
+      - name: Compile and run an installed TypeScript consumer
+        shell: bash
+        run: |
+          consumer="$RUNNER_TEMP/typescript-consumer"
+          mkdir "$consumer"
+          cd "$consumer"
+          npm install --ignore-scripts --no-audit --no-fund "$GITHUB_WORKSPACE"/dist/*.tgz
+          cat > consumer.mts <<'TS'
+          import { Client, EvalRouter, type RunRecord } from "@kimpton-ai/evalrouter";
+          import type { NewRun } from "@kimpton-ai/evalrouter/types";
+
+          const alias: typeof Client = EvalRouter;
+          const submit: (client: Client, request: NewRun) => Promise<RunRecord> =
+            (client, request) => client.runs.create(request, "synthetic-build-only");
+          if (alias !== Client || typeof submit !== "function") throw new Error("Invalid exports");
+          // Type-check the API without constructing a client or calling the service.
+          console.log("Installed TypeScript consumer passed; no API requests made");
+          TS
+          "$GITHUB_WORKSPACE/packages/typescript/node_modules/.bin/tsc" \
+            --strict --target ES2022 --module NodeNext --moduleResolution NodeNext \
+            --typeRoots "$GITHUB_WORKSPACE/packages/typescript/node_modules/@types" \
+            --outDir compiled consumer.mts
+          node compiled/consumer.mjs
