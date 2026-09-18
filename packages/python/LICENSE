@@ -1,0 +1,29 @@
+Kimpton EvalRouter SDK License
+
+Copyright (c) 2026 Kimpton. All rights reserved.
+
+Permission is granted to download, build the unmodified source, install, execute, and make internal copies of
+this SDK and its documentation solely to access the EvalRouter service and to
+integrate that access into applications you own or control, subject to your
+applicable EvalRouter service agreement and authorization.
+
+This is proprietary software, not an open-source license. Except for the limited
+permission above or as required by applicable law, no permission is granted to
+modify, redistribute, sublicense, sell, or use this software to provide a
+competing service. Preserve this license and all copyright notices in permitted
+copies. All rights not expressly granted are reserved.
+
+This license covers only the distributed SDK, CLI, and accompanying
+documentation. It grants no rights to EvalRouter backend or service source,
+benchmarks, datasets, models, credentials, trademarks, or other excluded material.
+Third-party dependencies remain subject to their own licenses.
+
+Downloading this software does not create an account, grant service access,
+provide credits, or waive service charges. Access remains subject to separate
+account, workspace, authorization, and billing requirements.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NONINFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW,
+THE COPYRIGHT HOLDERS SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
